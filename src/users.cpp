@@ -1,5 +1,43 @@
+
+#include <iostream>
+#include <mutex>
+#include <vector>
+#include <thread>
+#include <algorithm>
+#include <functional>
+#include <condition_variable>
 #include <iostream>
 
+/*class User{
+
+    private:
+        int id;
+        std::string random_word;
+        std::string type;
+        int limit_words;
+        int credits;
+        
+
+    public:
+        User(int id, std::string random_word,std::string type,int limit_words,int credits){
+            this -> id = id;
+            this -> random_word = random_word;
+            this -> type = type;
+            this -> limit_words = limit_words;
+            this -> credits = credits;
+        }
+        int get_id(){return id;}
+        std::string get_random_word(){return random_word;}
+        std::string get_type(){return type;}
+        void set_id(int id){
+            this->id = id;
+        }
+        void set_random_word(std::string random_word){
+            this->random_word = random_word;
+        }
+
+        
+};*/
 class User{
 
     private:
@@ -20,7 +58,7 @@ class User{
             this->random_word = random_word;
         }
 
-        
+
 };
 
 class Ilimited : public User{

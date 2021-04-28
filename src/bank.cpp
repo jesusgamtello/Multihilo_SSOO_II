@@ -1,10 +1,7 @@
-#include <iostream>
-#include <thread>
-#include <vector>
-#include <chrono>
-#include <mutex>
-#include <functional>
-#include <ctime>
-#include <atomic>
-#include <algorithm>
 
+
+void add_cash (int id, int credits){
+    
+        
+
+}
