@@ -9,24 +9,34 @@
 #include <condition_variable>
 #include <iostream>
 
-#define CLIENTS 5
+#define CLIENTS 10
 #define TOKENS 500
 #define WORDS_FREE 500
 
 //std::queue<User> queue_users;
 std::vector<Petition> v_petition;
-
+std::vector<std::string> result; 
+int id_result;
 int contador = 0;
 int buffer=0;
 std::mutex m;
-void select_random_word()
+std::string  select_random_word()
     {
         std::vector<std::string> v = {"actitud", "velocidad", "oro", "Cuál", "perdón", "Qué", "hola", "Cuando"};
         srand(time(NULL));
         int n_random = rand() % (v.size());
 
-        std::cout << v[n_random] << std::endl;
+       return v[n_random];
     }
+
+void generate_petition(User u, std::string word){
+    Petition p(u,word);
+
+    m.lock();
+    v_petition.push_back(p);
+    m.unlock();
+
+}
 /*User random_type(int id ){
     int n_random = 1 + rand() % 3;
     if (n_random==1){
@@ -60,22 +70,36 @@ User random_type(int id){
 
 }
 void create_client(int id){
+    std::string word = select_random_word();
     User u = random_type(id);
-    Petition p(u,"hola");
 
-    m.lock();
-    v_petition.push_back(p);
-    m.unlock();
+    generate_petition(u,word);
+    //bloquear
+
+    // se desbloquea que es el id, coge el reulstado y se lo queda, que si no lo es tiene que seguir bloqueado por tanto el while() 
+
+    // que cuaando coja el resultado si es suyo notifica a los demás que están eseprando para guaradar el resultado y break del while y termina 
+
+
 
 }
-void attend(int id){
-    std::cout<<"ATENDIENDO..."<< id<< std::endl;
-    std::this_thread::sleep_for (std::chrono::milliseconds(4000));
-    m.lock();
-    std::cout<<"termino..."<< id<< std::endl;
-    buffer=buffer-1;
-    m.unlock();
+void attend(Petition p){
+
+    if(p.get_user().get_type()=="p"){
+
+        //buscar palabras
+
+        // guardar resultado en variable result, y bloquear demás objetos que quieran entrar por ejemplo diciendo que sea distinto de 0 el size()
+
+        // notificaría a los clientes de que hay un resultado
+        
+    }else{
+        std::cout << "SOy otro tipo de cliente"<< std::endl;
+    }
+
+
 }
+
 int search_type(std::string type){
  
     for (int i = 0; i < v_petition.size(); i++)
@@ -93,44 +117,49 @@ void initialize_search()
 
     while (1)
     {
-        if (v_petition.size() != 0)
-        {
-            int n_random = 1 + rand() % (11 - 1);
-            if (n_random <= 2)
+        if (buffer < 4){
+            if (v_petition.size() != 0)
             {
-                    position = search_type("f");
-                if(position!=-1){
-                    Petition p = v_petition[position];
-                    std::cout << v_petition.size() << std::endl;
-                    std::cout << "SOY CLIENTE FREE ID: " << p.get_user().get_id() << std::endl;
-                    v_petition.erase(v_petition.begin()+position);
-                    std::cout << v_petition.size() << std::endl;
-                }
-            }
-            else if (n_random > 2)
-            {
-                if (n_random % 2 == 0)
+                int n_random = 1 + rand() % (11 - 1);
+                if (n_random <= 2)
                 {
-                        position = search_type("l");
-                    if (position!=-1){
+                    position = search_type("f");
+                    if (position != -1)
+                    {
                         Petition p = v_petition[position];
-                        std::cout << v_petition.size() << std::endl;
-                        std::cout << "SOY CLIENTE LIMITADO ID: " << p.get_user().get_id() << std::endl;
-                        v_petition.erase(v_petition.begin()+position);
-                        std::cout << v_petition.size() << std::endl;
-
+                        std::thread hilo(attend,p);
+                        buffer++;
+                        hilo.detach();
+                        v_petition.erase(v_petition.begin() + position);
                     }
                 }
-                else
+                else if (n_random > 2)
                 {
+                    if (n_random % 2 == 0)
+                    {
+                        position = search_type("l");
+                        if (position != -1)
+                        {
+                            Petition p = v_petition[position];
+                            std::thread hilo(attend, p);
+                            buffer++;
+                            hilo.detach();
+                            v_petition.erase(v_petition.begin() + position);
+                            
+                        }
+                    }
+                    else
+                    {
                         position = search_type("p");
-                    if(position!=-1){
-                        Petition p = v_petition[position];
-                        std::cout << v_petition.size() << std::endl;
-                        std::cout << "SOY CLIENTE ILIMITADO PREMIUM ID: " << p.get_user().get_id() << std::endl;
-                        v_petition.erase(v_petition.begin()+position);
-                        std::cout << v_petition.size() << std::endl;
-
+                        if (position != -1)
+                        {
+                            Petition p = v_petition[position];
+                            std::thread hilo(attend, p);
+                            buffer++;
+                            hilo.detach();
+                            v_petition.erase(v_petition.begin() + position);
+                    
+                        }
                     }
                 }
             }
