@@ -62,7 +62,7 @@ int main(){
 }
 
 
-    srand(time(NULL));
+    /*srand(time(NULL));
     int n_random = 1 + rand() % (11 - 1);
     if(n_random<=2){
         std::cout << n_random<<std::endl;
@@ -76,5 +76,5 @@ int main(){
         else{
             Ilimited i (4,"ilimited");      
         }
-    }
+    }*/
         
