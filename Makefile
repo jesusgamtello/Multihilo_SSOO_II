@@ -1,5 +1,5 @@
 CC = g++
-FLAGS = -pthread -std=c++11
+FLAGS = -pthread -std=c++17
 
 EXEC = createdir ssooiigle  
 DIR = exec

@@ -42,6 +42,7 @@ class Petition{
     private:
         User user;
         std::string random_word;
+        
        
         
 
@@ -58,6 +59,7 @@ class Petition{
         void set_random_word(std::string random_word){
             this->random_word = random_word;
         }
+        
 
         
 };
