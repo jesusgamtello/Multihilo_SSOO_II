@@ -111,7 +111,7 @@ void create_client(int id){
    
     
     while(1){
-        if(id_result == u.get_id() && u.get_type() == "p"){
+        if(id_result == u.get_id() ){
             std::cout<<"id_result "<<id_result<<" == "<<"u.get_id() "<< u.get_id()<<std::endl;
 
             cola = final_queue;
@@ -123,7 +123,7 @@ void create_client(int id){
     
     if(cola.size()!=0){
         std::cout<<"imprimimos result"<<std::endl;
-        print(cola);
+       print(cola);
     }
         
     while(!final_queue.empty()){
@@ -132,6 +132,7 @@ void create_client(int id){
     while(!aux_queue.empty()){
         aux_queue.pop();
     }
+    std::cout << "final de todos los libros" << std::endl;
     cv.notify_one();
     
 
@@ -147,13 +148,17 @@ void attend(Petition p){
         read_dir(p.get_random_word(),1); //word, num_threads
         m.lock();
         id_result = p.get_user().get_id();
+        buffer--;
         m.unlock();
-    }else{
-        std::cout<<"Es otro tipo de cliente"<<std::endl;
+    }else {
+        std::cout<<"Cliente Free"<<std::endl;
         m.lock();
         id_result = p.get_user().get_id();
+        buffer--;
         m.unlock();
     }
+
+    
 
    
 
@@ -231,15 +236,16 @@ void initialize_search()
 }
 int main(){
     std::vector<std::thread> clients;
+     std::thread searcher(initialize_search);
+    searcher.detach();
 
     for(int i = 0; i < CLIENTS; i++){
         std::cout<<("Creando clientes....")<<std::endl;
         clients.push_back(std::thread (create_client,i));
     }
-    std::thread searcher(initialize_search);
     std::for_each(clients.begin(), clients.end(), std::mem_fn(&std::thread::join));
     
-    searcher.join();
+
 
     //for(int i = 0; i < v_petition.size(); i++){
    //     std::cout << v_petition[i].get_user().get_id() << std::endl;
@@ -444,7 +450,7 @@ void print(std::queue<final_result> q){
     int     id  =   1;
     while (!q.empty())
     {
-        if (q.front().get_id() == id)
+       /*if (q.front().get_id() == id)
         {
             std::cout << BOLDRED << "Hilo " << q.front().get_id() << RESET;
         }
@@ -458,8 +464,8 @@ void print(std::queue<final_result> q){
         std::cout << " inicio: " << q.front().get_start_thread_line();
         std::cout << " - final: " << q.front().get_end_thread_line();
         std::cout << " :: línea " << q.front().get_line();
-        std::cout << " :: ... " << q.front().get_behind_word() << " " << q.front().get_exact_word() << " " << q.front().get_after_word();
-        std::cout << " ... " << std::endl;
+        std::cout << " :: ... " << q.front().get_behind_word() << " " << q.front().get_exact_word() << " " << q.front().get_after_word();*/
+        //std::cout << " ... " << std::endl;
 
         q.pop();
     }
@@ -474,12 +480,10 @@ void read_dir(std::string word_argv,int num_threads)
      
     for (const auto &file : std::filesystem::directory_iterator(path))
     {
-        std::cout << file.path() << std::endl;
         h.push_back(file.path());
     }
     for(int i = 0;i<h.size();i++){
         int             number_of_lines     =   count_total_lines(h[i]);
-        std::cout<<"EL LIBRO ES "<<h[i]<<std::endl;
         divide_in_threads(h[i],word_argv,num_threads,number_of_lines);
         vthreads.clear();
     }
