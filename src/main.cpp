@@ -17,12 +17,14 @@
 
 #define CLIENTS 10
 #define TOKENS 500
-#define WORDS_FREE 500
+#define WORDS_FREE 2
 #define N 4
 
 //std::queue<User> queue_users;
 std::vector<Petition> v_petition;
 std::queue<final_result> result; 
+std::vector<Petition> v_attending;
+std::vector<User> v_users;
 int id_result =-1;
 int contador = 0;
 int buffer=0;
@@ -41,199 +43,26 @@ std::vector<std::string>    h;
 //methods ssooiigle
 void                        start_message();
 int                         count_total_lines(std::string book);
-void                        read_file(std::string book, std::string word_argv,int id,int start, int end);
-void                        find_word(std::string word_argv, int number_of_lines, std::string line, int id, int start, int end);
-void                        divide_in_threads(std::string book,std::string word_argv,int num_threads, int number_of_lines);
+void                        read_file(std::string book, std::string word_argv,int id,int start, int end,int t_id);
+void                        find_word(std::string word_argv, int number_of_lines, std::string line, int id, int start, int end,int t_id);
+void                        divide_in_threads(std::string book,std::string word_argv,int num_threads, int number_of_lines, int t_id);
 void                        order_queue(int id);
 void                        print(std::queue <final_result> q);
 std::string                 clean_word(std::string word_read);
-void                        read_dir(std::string word_argv,int num_threads);
+void                        read_dir(Petition p);
 
-std::string  select_random_word()
-    {
-        /*std::vector<std::string> v = {"actitud", "velocidad", "oro", "Cuál", "perdón", "Qué", "hola", "Cuando"};
-        srand(time(NULL));
-        int n_random = rand() % (v.size());
+//methods multi_thread
 
-       return v[n_random];*/
-       return "actitud";
-    }
+std::string  select_random_word();
+void generate_petition(User u, std::string word);
+User random_type(int id);
+void create_client(int id);
+void attend(Petition p);
+int search_type(std::string type);
+void initialize_search();
+int find_position(int t_id);
+int search_user(Petition p);
 
-void generate_petition(User u, std::string word){
-    Petition p(u,word);
-
-    m.lock();
-    v_petition.push_back(p);
-    m.unlock();
-
-}
-/*User random_type(int id ){
-    int n_random = 1 + rand() % 3;
-    if (n_random==1){
-        User u(id, "", "f", WORDS_FREE, 0);
-        return u;
-    }
-    else if(n_random==2){
-        User u(id, "", "l", 0, TOKENS);/////
-        return u;
-    }
-    else{
-        User u(id,"","p",0,0); 
-        return u;
-    }
-}*/ // User(int id, std::string random_word,std::string type,int limit_words,int credits)
-User random_type(int id){
-    
-    int n_random = 1 + rand() % 3;
-    if (n_random==1){
-        User u(id, "f", WORDS_FREE, -1);
-        return u;
-    }
-    else if(n_random==2){
-        User u(id, "l", -1, TOKENS);
-        return u;
-    }
-    else{
-        User u(id,"p",-1,-1); 
-        return u;
-    }
-
-}
-void create_client(int id){
-    std::queue<final_result> cola;
-    std::string word = select_random_word();
-    User u = random_type(id);
-
-    std::vector<User> v_user;
-    generate_petition(u,word);
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-   
-    
-    while(1){
-        if(id_result == u.get_id() ){
-            std::cout<<"id_result "<<id_result<<" == "<<"u.get_id() "<< u.get_id()<<std::endl;
-
-            cola = final_queue;
-            break;
-            
-        }
-    }
-    //llamar metodo print y limpiar cola y notify 
-    
-    if(cola.size()!=0){
-        std::cout<<"imprimimos result"<<std::endl;
-       print(cola);
-    }
-        
-    while(!final_queue.empty()){
-        final_queue.pop();
-    }
-    while(!aux_queue.empty()){
-        aux_queue.pop();
-    }
-    std::cout << "final de todos los libros" << std::endl;
-    cv.notify_one();
-    
-
-
-}
-void attend(Petition p){
-    std::cout<<"final queue size "<<final_queue.size()<<std::endl;
-    std::unique_lock<std::mutex> lk(sem_cv);
-    cv.wait(lk,[] {return final_queue.empty();});
-    std::cout<<"CV"<<std::endl;
-    if(p.get_user().get_type() == "p"){
-        std::cout<<"cliente ilimitado id : "<<p.get_user().get_id()<<std::endl;
-        read_dir(p.get_random_word(),1); //word, num_threads
-        m.lock();
-        id_result = p.get_user().get_id();
-        buffer--;
-        m.unlock();
-    }else {
-        std::cout<<"Cliente Free"<<std::endl;
-        m.lock();
-        id_result = p.get_user().get_id();
-        buffer--;
-        m.unlock();
-    }
-
-    
-
-   
-
-
-}
-
-int search_type(std::string type){
- 
-    for (int i = 0; i < v_petition.size(); i++)
-    {
-        if (v_petition[i].get_user().get_type() == type)
-        {
-            return  i;
-        }
-    }
-    return -1;
-}
-void initialize_search()
-{
-    int position;
-
-    while (1)
-    {
-        if (buffer < N){
-            if (v_petition.size() != 0)
-            {
-                int n_random = 1 + rand() % (11 - 1);
-                if (n_random <= 2)
-                {
-                    position = search_type("f");
-                    if (position != -1)
-                    {
-                        Petition p = v_petition[position];
-                        std::cout<<"tipo F, id "<<p.get_user().get_id()<<std::endl;
-                        std::thread hilo(attend,p);
-                        buffer++;
-                        hilo.detach();
-                        v_petition.erase(v_petition.begin() + position);
-                    }
-                }
-                else if (n_random > 2)
-                {
-                    if (n_random % 2 == 0)
-                    {
-                        position = search_type("l");
-                        if (position != -1)
-                        {
-                            Petition p = v_petition[position];
-                            std::cout<<"tipo L, id "<<p.get_user().get_id()<<std::endl;
-                            std::thread hilo(attend, p);
-                            buffer++;
-                            hilo.detach();
-                            v_petition.erase(v_petition.begin() + position);
-                            
-                        }
-                    }
-                    else
-                    {
-                        position = search_type("p");
-                        if (position != -1)
-                        {
-                            Petition p = v_petition[position];
-                            std::cout<<"tipo P, id "<<p.get_user().get_id()<<std::endl;
-                            std::thread hilo(attend, p);
-                            buffer++;
-                            hilo.detach();
-                            v_petition.erase(v_petition.begin() + position);
-                    
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 int main(){
     std::vector<std::thread> clients;
      std::thread searcher(initialize_search);
@@ -253,6 +82,14 @@ int main(){
 
 
 
+}
+int find_position(int t_id){
+    for(int i =0;i<v_users.size();i++){
+       if( v_users[i].get_id() == t_id){
+           return i;
+       }
+    }
+    return -1;
 }
 void start_message(){
     std::cout <<BOLDMAGENTA<< "WELCOME TO THE SEARCHER :: "<<BOLDBLUE << "SS" << BOLDRED << "O" << BOLDYELLOW << "II" << BOLDBLUE << "GL" << BOLDGREEN << "E" << BOLDRED<< RESET << std::endl;
@@ -319,11 +156,13 @@ std::string clean_word(std::string word_read){
  *                   end where the thread end  
  * Purpose:          find the word who we are looking for 
  ******************************************************/
-void find_word(std::string word_argv, int number_of_lines, std::string line,int id, int start, int end)
+void find_word(std::string word_argv, int number_of_lines, std::string line,int id, int start, int end,int t_id)
 {
     std::istringstream          entire_line(line);
     std::string                 word_read;
     std::vector<std::string>    vect;
+    int position = find_position(t_id);
+
     vect.push_back(" ");
     while (entire_line >> word_read)
     {
@@ -343,12 +182,28 @@ void find_word(std::string word_argv, int number_of_lines, std::string line,int 
         {
             if ((vect[i].compare(word_to_print)) == 0)
             {
-
+                if(v_users[position].get_limit_words() == -1){
+                    final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
                 
-                final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
-                sem.lock();
-                aux_queue.push(result);
-                sem.unlock();
+                    sem.lock();
+                    aux_queue.push(result);
+                    sem.unlock();
+                }else if(v_users[position].get_limit_words() >0){
+                    final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
+
+                    sem.lock();
+                    aux_queue.push(result);
+                    int words=v_users[position].get_limit_words()-1;
+                    v_users.at(position).set_limit_words(words);
+                    std::cout<< "HOLAAAAAAAAAA"<<words<<std::endl;
+                    sem.unlock();
+                
+                }else if(v_users[position].get_limit_words() == 0){
+                    std::cout<< "Su prueba gratis ha terminado"<<std::endl;
+
+                }
+                
+                
             }
         }
     }
@@ -360,7 +215,7 @@ void find_word(std::string word_argv, int number_of_lines, std::string line,int 
  *                   en where the thread end
  * Purpose:          read the file and try to find the word
  ******************************************************/
-void read_file(std::string book, std::string word_argv, int id,int start, int end){
+void read_file(std::string book, std::string word_argv, int id,int start, int end,int t_id){
     std::string                 word_read, line;
     std::vector <std::string>   vector_of_words;
     int                         number_of_lines         =   1;
@@ -374,7 +229,7 @@ void read_file(std::string book, std::string word_argv, int id,int start, int en
             if (number_of_lines >= start)
             {
                
-                find_word(word_argv, number_of_lines, line, id, start, end);
+                find_word(word_argv, number_of_lines, line, id, start, end, t_id);
             }
 
             number_of_lines++;
@@ -392,7 +247,7 @@ void read_file(std::string book, std::string word_argv, int id,int start, int en
  *                   number_of_lines book's number of lines
  * Purpose:          divide the file in threads to search simultaneous results
  ******************************************************/
-void divide_in_threads(std::string book, std::string word_argv,int num_threads,int number_of_lines){
+void divide_in_threads(std::string book, std::string word_argv,int num_threads,int number_of_lines, int t_id){
     int     start       =   0;
     int     end         =   0;
     int     size_task   =   number_of_lines/num_threads;
@@ -404,7 +259,7 @@ void divide_in_threads(std::string book, std::string word_argv,int num_threads,i
         id++;
 
 
-        vthreads.push_back(std::thread(read_file,book,word_argv,id,start,end));
+        vthreads.push_back(std::thread(read_file,book,word_argv,id,start,end,t_id));
     }
     std::for_each(vthreads.begin(),vthreads.end(), std::mem_fn(&std::thread::join));
     for (int i = 1 ;i< num_threads + 1; i++){
@@ -450,7 +305,7 @@ void print(std::queue<final_result> q){
     int     id  =   1;
     while (!q.empty())
     {
-       /*if (q.front().get_id() == id)
+       if (q.front().get_id() == id)
         {
             std::cout << BOLDRED << "Hilo " << q.front().get_id() << RESET;
         }
@@ -464,8 +319,8 @@ void print(std::queue<final_result> q){
         std::cout << " inicio: " << q.front().get_start_thread_line();
         std::cout << " - final: " << q.front().get_end_thread_line();
         std::cout << " :: línea " << q.front().get_line();
-        std::cout << " :: ... " << q.front().get_behind_word() << " " << q.front().get_exact_word() << " " << q.front().get_after_word();*/
-        //std::cout << " ... " << std::endl;
+        std::cout << " :: ... " << q.front().get_behind_word() << " " << q.front().get_exact_word() << " " << q.front().get_after_word();
+        std::cout << " ... " << std::endl;
 
         q.pop();
     }
@@ -473,7 +328,7 @@ void print(std::queue<final_result> q){
     std::cout<<std::endl;
 }
 
-void read_dir(std::string word_argv,int num_threads)
+void read_dir(Petition p)
 {
     std::string path = "./utils";
     std::vector<std::string> h;
@@ -482,10 +337,223 @@ void read_dir(std::string word_argv,int num_threads)
     {
         h.push_back(file.path());
     }
-    for(int i = 0;i<h.size();i++){
+    /*for(int i = 0;i<h.size();i++){
         int             number_of_lines     =   count_total_lines(h[i]);
-        divide_in_threads(h[i],word_argv,num_threads,number_of_lines);
+        
+        divide_in_threads(h[i],p.get_random_word(),1,number_of_lines,p.get_user().get_id());
         vthreads.clear();
-    }
+    }*/
+    int             number_of_lines     =   count_total_lines("./utils/prueba.txt");
+    divide_in_threads("./utils/prueba.txt",p.get_random_word(),1,number_of_lines,p.get_id());
+    vthreads.clear();
     
+}
+
+
+/**********************************************************PRACTICA 3*******************************************************************/
+int search_user(Petition p){
+    for(int i = 0;i<v_users.size();i++){
+        if(v_users[i].get_id() == p.get_id()){
+            return i;
+        }
+    }
+    return -1;
+
+}
+std::string  select_random_word()
+    {
+        /*std::vector<std::string> v = {"actitud", "velocidad", "oro", "Cuál", "perdón", "Qué", "hola", "Cuando"};
+        srand(time(NULL));
+        int n_random = rand() % (v.size());
+
+       return v[n_random];*/
+       return "es";
+    }
+
+void generate_petition(User u, std::string word){
+    Petition p(u.get_id(),word);
+
+    m.lock();
+    v_petition.push_back(p);
+    m.unlock();
+
+}
+/*User random_type(int id ){
+    int n_random = 1 + rand() % 3;
+    if (n_random==1){
+        User u(id, "", "f", WORDS_FREE, 0);
+        return u;
+    }
+    else if(n_random==2){
+        User u(id, "", "l", 0, TOKENS);/////
+        return u;
+    }
+    else{
+        User u(id,"","p",0,0); 
+        return u;
+    }
+}*/ // User(int id, std::string random_word,std::string type,int limit_words,int credits)
+User random_type(int id){
+    
+    int n_random = 1 + rand() % 3;
+    if (n_random==1){
+        User u(id, "f", WORDS_FREE, -1);
+        return u;
+    }
+    else if(n_random==2){
+        User u(id, "l", -1, TOKENS);
+        return u;
+    }
+    else{
+        User u(id,"p",-1,-1); 
+        return u;
+    }
+
+}
+void create_client(int id){
+    std::queue<final_result> cola;
+    std::string word = select_random_word();
+    User u = random_type(id);
+    v_users.push_back(u);
+    generate_petition(u,word);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+   
+    
+    while(1){
+        if(id_result == u.get_id() ){
+            std::cout<<"id_result "<<id_result<<" == "<<"u.get_id() "<< u.get_id()<<std::endl;
+
+            cola = final_queue;
+            break;
+            
+        }
+    }
+    //llamar metodo print y limpiar cola y notify 
+    
+    if(cola.size()!=0){
+        std::cout<<"imprimimos result"<<std::endl;
+       print(cola);
+    }
+        
+    while(!final_queue.empty()){
+        final_queue.pop();
+    }
+    while(!aux_queue.empty()){
+        aux_queue.pop();
+    }
+    std::cout << "final de todos los libros" << std::endl;
+    cv.notify_one();
+    
+
+
+}
+void attend(Petition p){
+    std::cout<<"final queue size "<<final_queue.size()<<std::endl;
+    std::unique_lock<std::mutex> lk(sem_cv);
+    cv.wait(lk,[] {return final_queue.empty();});
+    std::cout<<"CV"<<std::endl;
+    int position = search_user(p);
+    if(v_users[position].get_type() == "p"){
+        std::cout<<"cliente ilimitado id : "<<p.get_id()<<std::endl;
+        read_dir(p); //word, num_threads
+        m.lock();
+        id_result = p.get_id();
+        buffer--;
+        m.unlock();
+    }else if(v_users[position].get_type() == "f"){
+        std::cout<<"Cliente Free"<<std::endl;
+        read_dir(p); //word, num_threads
+        m.lock();
+        id_result = p.get_id();
+        buffer--;
+        m.unlock();
+    }else{
+        std::cout<<"Cliente Premium limited"<<std::endl;
+        m.lock();
+        id_result = p.get_id();
+        buffer--;
+        m.unlock();
+
+    }
+
+    
+
+   
+
+
+}
+
+int search_type(std::string type){
+ 
+    for (int i = 0; i < v_petition.size(); i++)
+    {
+        for (int j = 0 ; j< v_users.size(); j++){
+
+            if(v_users[j].get_id() == v_petition[i].get_id() && v_users[j].get_type()== type){
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+void initialize_search()
+{
+    int position;
+
+    while (1)
+    {
+        if (buffer < N){
+            if (v_petition.size() != 0)
+            {
+                int n_random = 1 + rand() % (11 - 1);
+                if (n_random <= 2)
+                {
+                    position = search_type("f");
+                    if (position != -1)
+                    {
+                        //Petition p = v_petition[position];
+                        std::cout<<"tipo F, id "<<v_petition[position].get_id()<<std::endl;
+                        v_attending.push_back(v_petition[position]);
+                        std::thread hilo(attend,v_petition[position]);
+                        buffer++;
+                        hilo.detach();
+                        v_petition.erase(v_petition.begin() + position);
+                    }
+                }
+                else if (n_random > 2)
+                {
+                    if (n_random % 2 == 0)
+                    {
+                        position = search_type("l");
+                        if (position != -1)
+                        {
+                            //Petition p = v_petition[position];
+                            std::cout<<"tipo L, id "<<v_petition[position].get_id()<<std::endl;
+                            v_attending.push_back(v_petition[position]);
+                            std::thread hilo(attend, v_petition[position]);
+                            buffer++;
+                            hilo.detach();
+                            v_petition.erase(v_petition.begin() + position);
+                            
+                        }
+                    }
+                    else
+                    {
+                        position = search_type("p");
+                        if (position != -1)
+                        {
+                            //Petition p = v_petition[position];
+                            std::cout<<"tipo P, id "<<v_petition[position].get_id()<<std::endl;
+                            v_attending.push_back(v_petition[position]);
+                            std::thread hilo(attend, v_petition[position]);
+                            hilo.detach();
+                            v_petition.erase(v_petition.begin() + position);
+                    
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

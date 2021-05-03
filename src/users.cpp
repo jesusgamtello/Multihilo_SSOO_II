@@ -37,7 +37,7 @@ class User{
 
         
 };
-class Petition{
+/*class Petition{
 
     private:
         User user;
@@ -53,8 +53,34 @@ class Petition{
         User get_user(){return user;}
         std::string get_random_word(){return random_word;}
         //setters
-        void set_id(User user){
+        void set_user(User user){
             this->user = user;
+        }
+        void set_random_word(std::string random_word){
+            this->random_word = random_word;
+        }
+        
+
+        
+};*/
+class Petition{
+
+    private:
+        int id;
+        std::string random_word;
+        
+       
+        
+
+    public:
+        Petition(int id, std::string random_word):id(id),random_word(random_word){}
+          
+        //getters
+        int get_id(){return id;}
+        std::string get_random_word(){return random_word;}
+        //setters
+        void set_id(int id){
+            this->id = id;
         }
         void set_random_word(std::string random_word){
             this->random_word = random_word;
