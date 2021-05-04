@@ -15,13 +15,19 @@
 
 std::vector<User> f;
 int main(){
-    User u(1,"f",400,-1,true);
-    final_result fi(1, 5,5, 5, "hola", "hola", "hola");
-    final_result p(1, 5,5, 5, "j", "j", "j");
-    f.push_back(u);
-    f[0].set_confirmated(false);
+    srand(time(NULL));
 
-   
-   std::cout<<f[0].is_confirmated()
+    int n_random = 1 + rand() % 3;
+    std::cout<<"el numero random es "<<n_random<<std::endl;
+    if (n_random==1){
+        std::cout<<"hola"<<std::endl;
+    }
+    else if(n_random==2){
+        std::cout<<"hola2"<<std::endl;
+        
+    }
+    else{
+        std::cout<<"hola3"<<std::endl;
+    }
 }
     
