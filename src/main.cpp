@@ -498,6 +498,7 @@ void attend(Petition p){
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
     }else if(v_users[position].get_type() == "f"){
         std::cout<<"Cliente Free id : "<<p.get_id()<<std::endl;
@@ -505,6 +506,7 @@ void attend(Petition p){
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
     }else{
         std::cout<<"Cliente Premium limited id :"<<p.get_id()<<std::endl;
@@ -512,6 +514,7 @@ void attend(Petition p){
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
 
     }
@@ -539,10 +542,11 @@ int search_type(std::string type){
 void initialize_search()
 {
     int position;
-
+    std::unique_lock<std::mutex> lk(sem_cv);
+        
     while (1)
     {
-        if (buffer < N){
+        cv.wait(lk,[]{return buffer<N;});
             if (v_petition.size() != 0)
             {
                 int n_random = 1 + rand() % (11 - 1);
@@ -590,7 +594,7 @@ void initialize_search()
                     }
                 }
             }
-        }
+        
     }
 }
 void add_cash(){
