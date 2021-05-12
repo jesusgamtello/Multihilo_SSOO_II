@@ -12,12 +12,12 @@
 #include <cctype>
 #include <filesystem>
 #include "../include/colors.h"
-#include "result.cpp"
+//#include "result.cpp"
 #include "users.cpp"
 
-#define CLIENTS 10
+#define CLIENTS 50
 #define TOKENS 500
-#define WORDS_FREE 2
+#define WORDS_FREE 3
 #define N 4
 
 //std::queue<User> queue_users;
@@ -25,6 +25,7 @@ std::vector<Petition> v_petition;
 std::queue<final_result> result; 
 std::vector<Petition> v_attending;
 std::vector<User> v_users;
+std::queue<int> v_payments; 
 int id_result =-1;
 int contador = 0;
 int buffer=0;
@@ -32,9 +33,12 @@ std::mutex m;
 std::mutex sem_cv;
 std::condition_variable cv;
 
+//bank
+std::mutex sem2;
+std::condition_variable y;
+
 
 //globals ssooiigle
-std::vector<std::thread>    vthreads;
 std::queue <final_result>   final_queue;
 std::queue <final_result>   aux_queue;
 std::mutex                  sem;
@@ -62,14 +66,17 @@ int search_type(std::string type);
 void initialize_search();
 int find_position(int t_id);
 int search_user(Petition p);
+void add_cash();
+void write_results(int id, std::string text);
 
 int main(){
     std::vector<std::thread> clients;
-     std::thread searcher(initialize_search);
+    std::thread searcher(initialize_search);
+    std::thread bank(add_cash);
     searcher.detach();
+    bank.detach();
 
     for(int i = 0; i < CLIENTS; i++){
-        std::cout<<("Creando clientes....")<<std::endl;
         clients.push_back(std::thread (create_client,i));
     }
     std::for_each(clients.begin(), clients.end(), std::mem_fn(&std::thread::join));
@@ -183,24 +190,51 @@ void find_word(std::string word_argv, int number_of_lines, std::string line,int 
             if ((vect[i].compare(word_to_print)) == 0)
             {
                 if(v_users[position].get_limit_words() == -1){
+                    //case ilimitado
                     final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
                 
                     sem.lock();
-                    aux_queue.push(result);
+                    v_users[position].introduce(result);
                     sem.unlock();
                 }else if(v_users[position].get_limit_words() >0){
+                    //case free
                     final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
 
                     sem.lock();
-                    aux_queue.push(result);
+                    v_users[position].introduce(result);                
                     int words=v_users[position].get_limit_words()-1;
                     v_users.at(position).set_limit_words(words);
-                    std::cout<< "HOLAAAAAAAAAA"<<words<<std::endl;
                     sem.unlock();
                 
                 }else if(v_users[position].get_limit_words() == 0){
-                    std::cout<< "Su prueba gratis ha terminado"<<std::endl;
+                    
+                 std::this_thread::sleep_for (std::chrono::milliseconds(10)); 
 
+                }else if (v_users[position].get_credits() > 0){
+                    //case premium limite
+                    final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);     /********************* CREACION DE OBJETO!!!!!!!! *********************/
+                    sem.lock();
+                    v_users[position].introduce(result); 
+                    int credits = v_users[position].get_credits() - 1;
+                    v_users[position].set_credits(credits);
+                    sem.unlock();
+
+                }else if(v_users[position].get_credits() == 0){
+                    std::cout<<"Necesito creditos"<<std::endl;
+                    v_payments.push(v_users[position].get_id());
+                    y.notify_one();
+                    while(v_users[position].get_credits() == 0){
+                        std::cout<<"ESperando Recibir pago"<< std::endl;
+                        std::this_thread::sleep_for (std::chrono::milliseconds(1000)); 
+                    }
+
+                    final_result result (id,number_of_lines,start,end,vect[i-1],vect[i],vect[i+1]);   
+                    sem.lock();
+                    v_users[position].introduce(result); 
+                    int credits = v_users[position].get_credits() - 1;
+                    v_users[position].set_credits(credits);
+                    sem.unlock();
+                    
                 }
                 
                 
@@ -252,6 +286,7 @@ void divide_in_threads(std::string book, std::string word_argv,int num_threads,i
     int     end         =   0;
     int     size_task   =   number_of_lines/num_threads;
     int     id          =   0;
+    std::vector<std::thread>    vthreads;
     for (int i = 0; i < num_threads; i++){
         start           =   (i * size_task) +1;
         end             =   (start + size_task) - 1;
@@ -263,7 +298,7 @@ void divide_in_threads(std::string book, std::string word_argv,int num_threads,i
     }
     std::for_each(vthreads.begin(),vthreads.end(), std::mem_fn(&std::thread::join));
     for (int i = 1 ;i< num_threads + 1; i++){
-        order_queue(i);
+        //order_queue(i);
         
     }
     //print();
@@ -300,12 +335,22 @@ void order_queue(int id){
  * Date:     14/4/2021  
  * Purpose:          Print the final queue with the results
  ******************************************************/
-void print(std::queue<final_result> q){
+void print(std::queue<final_result> q, int id){
     std::cout<<std::endl;
-    int     id  =   1;
+    
+    //int     id  =   1;
     while (!q.empty())
     {
-       if (q.front().get_id() == id)
+        std::string text;
+        text = "Hilo "+ std::to_string(q.front().get_id());
+        text.append( " inicio: " +std::to_string(q.front().get_start_thread_line()));
+        text.append(" - final: " + std::to_string(q.front().get_end_thread_line()));
+        text.append( " :: línea " + std::to_string(q.front().get_line()));
+        text.append( " :: ... " );
+        text.append(q.front().get_behind_word() + " " +q.front().get_exact_word() + " " + q.front().get_after_word());
+        
+       
+       /*if (q.front().get_id() == id)
         {
             std::cout << BOLDRED << "Hilo " << q.front().get_id() << RESET;
         }
@@ -320,10 +365,13 @@ void print(std::queue<final_result> q){
         std::cout << " - final: " << q.front().get_end_thread_line();
         std::cout << " :: línea " << q.front().get_line();
         std::cout << " :: ... " << q.front().get_behind_word() << " " << q.front().get_exact_word() << " " << q.front().get_after_word();
-        std::cout << " ... " << std::endl;
-
+        std::cout << " ... " << std::endl;*/
+        m.lock();
+        write_results(id,text);
+        m.unlock();
         q.pop();
     }
+    //write_results(id,text);
 
     std::cout<<std::endl;
 }
@@ -337,15 +385,16 @@ void read_dir(Petition p)
     {
         h.push_back(file.path());
     }
-    /*for(int i = 0;i<h.size();i++){
+    for(int i = 0;i<h.size();i++){
         int             number_of_lines     =   count_total_lines(h[i]);
         
-        divide_in_threads(h[i],p.get_random_word(),1,number_of_lines,p.get_user().get_id());
-        vthreads.clear();
-    }*/
-    int             number_of_lines     =   count_total_lines("./utils/prueba.txt");
-    divide_in_threads("./utils/prueba.txt",p.get_random_word(),1,number_of_lines,p.get_id());
-    vthreads.clear();
+        divide_in_threads(h[i],p.get_random_word(),1,number_of_lines,p.get_id());
+       
+    }
+    //int             number_of_lines     =   count_total_lines("./utils/prueba.txt");
+    //divide_in_threads("./utils/prueba.txt",p.get_random_word(),1,number_of_lines,p.get_id());
+    int position = search_user(p);
+    v_users[position].set_confirmated(true);
     
 }
 
@@ -362,12 +411,11 @@ int search_user(Petition p){
 }
 std::string  select_random_word()
     {
-        /*std::vector<std::string> v = {"actitud", "velocidad", "oro", "Cuál", "perdón", "Qué", "hola", "Cuando"};
-        srand(time(NULL));
+        std::vector<std::string> v = {"actitud", "velocidad", "oro", "cuál", "perdón", "qué", "cuando"};
         int n_random = rand() % (v.size());
 
-       return v[n_random];*/
-       return "es";
+       return v[n_random];
+       //return "es";
     }
 
 void generate_petition(User u, std::string word){
@@ -394,18 +442,18 @@ void generate_petition(User u, std::string word){
     }
 }*/ // User(int id, std::string random_word,std::string type,int limit_words,int credits)
 User random_type(int id){
-    
     int n_random = 1 + rand() % 3;
+    std::cout<<"el numero random es "<<n_random<<std::endl;
     if (n_random==1){
-        User u(id, "f", WORDS_FREE, -1);
+        User u(id, "f", WORDS_FREE, -1,false );
         return u;
     }
     else if(n_random==2){
-        User u(id, "l", -1, TOKENS);
+        User u(id, "l", -2, TOKENS,false );
         return u;
     }
     else{
-        User u(id,"p",-1,-1); 
+        User u(id,"p",-1,-1,false); 
         return u;
     }
 
@@ -414,45 +462,35 @@ void create_client(int id){
     std::queue<final_result> cola;
     std::string word = select_random_word();
     User u = random_type(id);
+    m.lock();
     v_users.push_back(u);
+    int position = find_position(u.get_id());
+    m.unlock();
     generate_petition(u,word);
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-   
     
+    //std::cout<<v_users[position].is_confirmated()<<std::endl;
     while(1){
-        if(id_result == u.get_id() ){
-            std::cout<<"id_result "<<id_result<<" == "<<"u.get_id() "<< u.get_id()<<std::endl;
-
-            cola = final_queue;
+        if(v_users[position].is_confirmated()==1){
+            
+            cola = v_users[position].get_result();
+            
             break;
             
         }
     }
     //llamar metodo print y limpiar cola y notify 
     
-    if(cola.size()!=0){
-        std::cout<<"imprimimos result"<<std::endl;
-       print(cola);
-    }
-        
-    while(!final_queue.empty()){
-        final_queue.pop();
-    }
-    while(!aux_queue.empty()){
-        aux_queue.pop();
-    }
+    
+    std::cout<<"imprimimos result "<<v_users[position].get_id()<<std::endl;
+    print(cola,v_users[position].get_id());
     std::cout << "final de todos los libros" << std::endl;
-    cv.notify_one();
+    
+   
     
 
 
 }
 void attend(Petition p){
-    std::cout<<"final queue size "<<final_queue.size()<<std::endl;
-    std::unique_lock<std::mutex> lk(sem_cv);
-    cv.wait(lk,[] {return final_queue.empty();});
-    std::cout<<"CV"<<std::endl;
     int position = search_user(p);
     if(v_users[position].get_type() == "p"){
         std::cout<<"cliente ilimitado id : "<<p.get_id()<<std::endl;
@@ -460,19 +498,23 @@ void attend(Petition p){
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
     }else if(v_users[position].get_type() == "f"){
-        std::cout<<"Cliente Free"<<std::endl;
+        std::cout<<"Cliente Free id : "<<p.get_id()<<std::endl;
         read_dir(p); //word, num_threads
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
     }else{
-        std::cout<<"Cliente Premium limited"<<std::endl;
+        std::cout<<"Cliente Premium limited id :"<<p.get_id()<<std::endl;
+        read_dir(p); //word, num_threads
         m.lock();
         id_result = p.get_id();
         buffer--;
+        cv.notify_one();
         m.unlock();
 
     }
@@ -500,10 +542,11 @@ int search_type(std::string type){
 void initialize_search()
 {
     int position;
-
+    std::unique_lock<std::mutex> lk(sem_cv);
+        
     while (1)
     {
-        if (buffer < N){
+        cv.wait(lk,[]{return buffer<N;});
             if (v_petition.size() != 0)
             {
                 int n_random = 1 + rand() % (11 - 1);
@@ -513,7 +556,6 @@ void initialize_search()
                     if (position != -1)
                     {
                         //Petition p = v_petition[position];
-                        std::cout<<"tipo F, id "<<v_petition[position].get_id()<<std::endl;
                         v_attending.push_back(v_petition[position]);
                         std::thread hilo(attend,v_petition[position]);
                         buffer++;
@@ -529,7 +571,6 @@ void initialize_search()
                         if (position != -1)
                         {
                             //Petition p = v_petition[position];
-                            std::cout<<"tipo L, id "<<v_petition[position].get_id()<<std::endl;
                             v_attending.push_back(v_petition[position]);
                             std::thread hilo(attend, v_petition[position]);
                             buffer++;
@@ -544,7 +585,6 @@ void initialize_search()
                         if (position != -1)
                         {
                             //Petition p = v_petition[position];
-                            std::cout<<"tipo P, id "<<v_petition[position].get_id()<<std::endl;
                             v_attending.push_back(v_petition[position]);
                             std::thread hilo(attend, v_petition[position]);
                             hilo.detach();
@@ -554,6 +594,34 @@ void initialize_search()
                     }
                 }
             }
-        }
+        
     }
+}
+void add_cash(){
+    std::unique_lock<std::mutex> c2(sem2);
+
+    while(1){
+        y.wait(c2,[]{return !v_payments.empty();});
+        std::cout <<"metiendo dinero"<< std::endl;
+        int position = find_position(v_payments.front());
+        v_users[position].set_credits(500);
+        m.lock();
+        v_payments.pop();
+        m.unlock();
+    }
+}
+
+void write_results(int id, std::string text) {
+
+    std::string name = "id_"+std::to_string(id);
+    std::string final = name + ".txt";
+    std::string path = "./results/"+final;
+    //std::cout<<"el path es "<<path<<std::endl;
+    
+    std::ofstream outfile;
+    outfile.open(path, std::ios_base::app); // append instead of overwrite
+
+    outfile << text << std::endl;
+
+    outfile.close();
 }

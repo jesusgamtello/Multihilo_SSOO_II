@@ -13,11 +13,21 @@
 #include <filesystem>
 #include "users.cpp"
 
+std::vector<User> f;
 int main(){
-    User u(1,"f",400,-1);
-    Petition p (u,"hola");
+    srand(time(NULL));
 
-    u.set_limit_words(900);
-    std::cout<<u.get_limit_words()<<std::endl;
+    int n_random = 1 + rand() % 3;
+    std::cout<<"el numero random es "<<n_random<<std::endl;
+    if (n_random==1){
+        std::cout<<"hola"<<std::endl;
+    }
+    else if(n_random==2){
+        std::cout<<"hola2"<<std::endl;
+        
+    }
+    else{
+        std::cout<<"hola3"<<std::endl;
+    }
 }
     

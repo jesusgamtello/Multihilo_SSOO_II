@@ -9,6 +9,10 @@
 #include <condition_variable>
 #include <iostream>
 #include <stdlib.h>
+#include "main.cpp"
+#include "users.cpp"
+
+
 
 
 std::condition_variable x;
@@ -16,6 +20,7 @@ std::condition_variable y;
 std::mutex sem;
 std::mutex sem2;
 int credits = 100;
+
 
 void buscar(int numero_palabras){
 
@@ -47,10 +52,10 @@ void add_cash(int numero ){
 int main(){
     std::cout <<credits<< std::endl;
 
-
     std::thread hilo (buscar,1000);
     std::thread hilo2(add_cash,234);
     //std::thread hilo3(hallo);
+    
 
     hilo.join();
 

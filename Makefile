@@ -2,7 +2,7 @@ CC = g++
 FLAGS = -pthread -std=c++17
 
 EXEC = createdir ssooiigle  
-DIR = exec
+DIR = exec results
 
 all: compile run
 
