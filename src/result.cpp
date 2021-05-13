@@ -1,3 +1,16 @@
+/**************************************************************
+ * Project:         Práctica 3 
+ * 
+ * Program name:    result.cpp
+ 
+ * Author:          Jesús Gamero Tello and Pedro Millan Alvarez
+ * 
+ * Date created:    13/5/2021
+ * 
+ * Purpose:         Auxiliary class to use it in main. This class it used to print the
+ *                  lines and the word which is search
+ * 
+ ****************************************************************/
 #include <iostream>
 
 class final_result{

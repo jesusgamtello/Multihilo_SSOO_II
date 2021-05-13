@@ -1,3 +1,19 @@
+/**************************************************************
+ * Project:         Práctica 3
+ * 
+ * Program name:    main.cpp
+ 
+ * Author:          Jesús Gamero Tello and Pedro Millan Alvarez
+ * 
+ * Date created:    13/5/2021
+ * 
+ * Purpose:         some clients make petitions of search in the books that we have in
+ *                  the directory utils/. The clients are generated randomly, and there are
+ *                  types of clients, type "l" who is premium limited, client "p" who is premium
+ *                  and clients "f" who are clients of type free. Clients of type free and premium 
+ *                  limited have a number of tokens or words to search. 
+ * 
+ ****************************************************************/
 #include <queue>
 #include <iostream>
 #include <mutex>
@@ -12,7 +28,7 @@
 #include <cctype>
 #include <filesystem>
 #include "../include/colors.h"
-//#include "result.cpp"
+
 #include "users.cpp"
 
 #define CLIENTS 50
