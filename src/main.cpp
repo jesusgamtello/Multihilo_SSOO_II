@@ -375,8 +375,6 @@ void read_dir(Petition p)
 
         divide_in_threads(books[i], p.get_random_word(), 1, number_of_lines, p.get_id());
     }
-    //int             number_of_lines     =   count_total_lines("./utils/prueba.txt");
-    //divide_in_threads("./utils/prueba.txt",p.get_random_word(),1,number_of_lines,p.get_id());
     int position = search_user(p);
     v_users[position].set_confirmated(true);
 }
