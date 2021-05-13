@@ -30,7 +30,6 @@ int                             buffer                  =   0;
 std::mutex                      m;
 std::mutex                      sem_cv;
 std::condition_variable         cv;
-
 //bank
 std::mutex                      bank;
 std::condition_variable         y;
@@ -79,9 +78,9 @@ int main()
     }
     std::for_each(clients.begin(), clients.end(), std::mem_fn(&std::thread::join));
 
-    //for(int i = 0; i < v_petition.size(); i++){
-    //     std::cout << v_petition[i].get_user().get_id() << std::endl;
-    //}
+    return 0;
+
+    
 }
 int find_position(int t_id)
 {
@@ -300,11 +299,7 @@ void divide_in_threads(std::string book, std::string word_argv, int num_threads,
         vthreads.push_back(std::thread(read_file, book, word_argv, id, start, end, t_id));
     }
     std::for_each(vthreads.begin(), vthreads.end(), std::mem_fn(&std::thread::join));
-    for (int i = 1; i < num_threads + 1; i++)
-    {
-        //order_queue(i);
-    }
-    //print();
+   
 }
 /******************************************************
  * Function:    order_queue
@@ -379,7 +374,7 @@ void read_dir(Petition p)
     v_users[position].set_confirmated(true);
 }
 
-/********************************************************** METHODS OF JOB 3: MULTITHTREADING *******************************************************************/
+/********************************************************** METHODS OF JOB 3: MULTITHREADING *******************************************************************/
 
 /**
 * This function search the position of a petition
@@ -457,7 +452,6 @@ void create_client(int id)
               << " Generate a petition" << std::endl;
     generate_petition(u, word);
 
-    //std::cout<<v_users[position].is_confirmated()<<std::endl;
     while (1)
     {
         if (v_users[position].is_confirmated() == 1)
@@ -468,7 +462,7 @@ void create_client(int id)
             break;
         }
     }
-    //llamar metodo print y limpiar cola y notify
+    
 
     print(cola, v_users[position].get_id());
 }
@@ -593,7 +587,7 @@ void write_results(int id, std::string text)
     std::string     final   =    name + ".txt";
     std::string     path    =   "./results/" + final;
     std::ofstream   outfile;
-    outfile.open(path, std::ios_base::app); // append instead of overwrite
+    outfile.open(path, std::ios_base::app); 
     outfile << text << std::endl;
     outfile.close();
 }
