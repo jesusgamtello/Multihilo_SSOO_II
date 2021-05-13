@@ -1,3 +1,15 @@
+/**************************************************************
+ * Project:         Práctica 3
+ * 
+ * Program name:    main.cpp
+ 
+ * Author:          Jesús Gamero Tello and Pedro Millan Alvarez
+ * 
+ * Date created:    13/5/2021
+ * 
+ * Purpose:         Auxiliary class to create clients and to create petitions
+ * 
+ ***************************************************************/
 #include<iostream>
 #include"result.cpp"
 class User{
