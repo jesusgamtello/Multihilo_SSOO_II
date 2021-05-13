@@ -26,22 +26,19 @@ std::queue<final_result>        result;
 std::vector<Petition>           v_attending;
 std::vector<User>               v_users;
 std::queue<int>                 v_payments;
-int                             id_result               =  -1;
-int                             contador                =   0;
 int                             buffer                  =   0;
 std::mutex                      m;
 std::mutex                      sem_cv;
 std::condition_variable         cv;
 
 //bank
-std::mutex                      sem2;
+std::mutex                      bank;
 std::condition_variable         y;
 
 //globals ssooiigle
 std::queue<final_result>        final_queue;
 std::queue<final_result>        aux_queue;
 std::mutex                      sem;
-std::vector<std::string>        h;
 
 //methods ssooiigle
 void                            start_message();
@@ -366,17 +363,17 @@ void print(std::queue<final_result> q, int id)
 void read_dir(Petition p)
 {
     std::string                 path    =   "./utils";
-    std::vector<std::string>    h;
+    std::vector<std::string>    books;
 
     for (const auto &file : std::filesystem::directory_iterator(path))
     {
-        h.push_back(file.path());
+        books.push_back(file.path());
     }
-    for (int i = 0; i < h.size(); i++)
+    for (int i = 0; i < books.size(); i++)
     {
-        int number_of_lines = count_total_lines(h[i]);
+        int number_of_lines = count_total_lines(books[i]);
 
-        divide_in_threads(h[i], p.get_random_word(), 1, number_of_lines, p.get_id());
+        divide_in_threads(books[i], p.get_random_word(), 1, number_of_lines, p.get_id());
     }
     //int             number_of_lines     =   count_total_lines("./utils/prueba.txt");
     //divide_in_threads("./utils/prueba.txt",p.get_random_word(),1,number_of_lines,p.get_id());
@@ -483,6 +480,7 @@ void create_client(int id)
 */
 void attend(Petition p)
 {
+        std::cout << BOLDCYAN << "[SERVER]: " << RESET << " Attending petition " << p.get_id()  << std::endl;
         read_dir(p); //word, num_threads
         m.lock();
         buffer--;
@@ -572,11 +570,11 @@ void initialize_search()
 */
 void add_cash()
 {
-    std::unique_lock<std::mutex>    c2(sem2);
+    std::unique_lock<std::mutex>    u_bank(bank);
 
     while (1)
     {
-        y.wait(c2, []{ return !v_payments.empty(); });
+        y.wait(u_bank, []{ return !v_payments.empty(); });
         int     position    =   find_position(v_payments.front());
         v_users[position].set_credits(500);
         std::cout << BOLDRED<< "[Bank]"<< RESET << " Client : " << v_payments.front() << " has been paid" << std::endl;
